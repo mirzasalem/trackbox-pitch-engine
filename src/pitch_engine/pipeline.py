@@ -3,14 +3,16 @@ from shapely.geometry import Polygon
 
 from src.pitch_engine.config import PipelineConfig
 from src.pitch_engine.detectors.base import FieldDetector
-from src.pitch_engine.models import RunSummary
+from src.pitch_engine.models import RunSummary, ProgressReport
 
 
 class FieldBoundaryAnalyzer:
-    def __init__(self, config: PipelineConfig, detector: FieldDetector, logger):
+    def __init__(self, config: PipelineConfig, detector: FieldDetector, logger, reporting_client, run_id: str):
         self.config = config
         self.detector = detector
         self.logger = logger
+        self.reporting_client = reporting_client
+        self.run_id = run_id
 
     def process_video(self, video_path: str):
         self.logger.info(f"Starting processing for video: {video_path}")
@@ -63,6 +65,10 @@ class FieldBoundaryAnalyzer:
                     exc_info=True,
                 )
                 continue
+            if frame_count % 200 == 0:
+                self.reporting_client.report_progress(
+                    ProgressReport(run_id=self.run_id, video_path=video_path, frames_processed=frame_count)
+                )
 
             if poly is None:
                 no_detection_count += 1
