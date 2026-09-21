@@ -5,7 +5,9 @@
 - The mock detector only detects the green area, so it returns a near full-frame polygon instead of the actual pitch boundary.
 - In the 1800-frame test: 0 valid, 1776 invalid, and 24 no-detection frames.
 - This confirms area alone cannot distinguish a visible pitch from a close-up/no-pitch frame.
-- Open question: How will the real ML model identify “no field visible” vs. a valid          low-confidence detection?
+- Open question: How will the real ML model identify “no field visible” vs. a valid low-confidence detection?
+- Assumed a fixed resolution and frame rate per file. When `cap.grab()` fails the pipeline treats it as the end of the stream; OpenCV can't tel a mid-file decode error from a normal end, so a truncated file currently ends the run early. Next step: compare frames read against CAP_PROP_FRAME_COUNT and warn on a shortfall.
+- `confidence_threshold` and `field_detector.sport` are validated but not used yet: the mock detector has no confidence score or per-sport logic. `crop_search` was dropped because the prototype never used it. Open question for the ML team: what confidence score the real model exposes and how it varies by sport.
 
 
 ## Performance Trade-offs
