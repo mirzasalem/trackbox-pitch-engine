@@ -1,4 +1,3 @@
-import time
 import cv2
 from shapely.geometry import Polygon
 
@@ -19,24 +18,37 @@ class FieldBoundaryAnalyzer:
             print("Error: Could not open video stream.")
             return
 
+        frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        outer_boundary = Polygon(
+            [(0, 0), (frame_width, 0), (frame_width, frame_height), (0, frame_height)]
+        )
+
+        source_fps = cap.get(cv2.CAP_PROP_FPS) or 30.0
+        sample_interval = max(1, round(source_fps / self.config.target_fps))
+
         frame_count = 0
         detected_polygons = []
 
         while True:
-            ret, frame = cap.read()
+            ret = cap.grab()
             if not ret:
                 break
 
             frame_count += 1
 
+            if frame_count % sample_interval != 0:
+                continue
+
+            ret, frame = cap.retrieve()
+            if not ret:
+                break
+
             poly = self.detector.detect(frame)
 
             if poly and poly.is_valid:
-                outer_boundary = Polygon([(0, 0), (1280, 0), (1280, 720), (0, 720)])
                 intersection_area = poly.intersection(outer_boundary).area
                 detected_polygons.append((frame_count, poly, intersection_area))
-
-            time.sleep(0.005)
 
         cap.release()
         print(f"Processed {frame_count} frames. Found {len(detected_polygons)} boundaries.")
