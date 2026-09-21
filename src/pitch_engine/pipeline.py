@@ -3,6 +3,7 @@ from shapely.geometry import Polygon
 
 from src.pitch_engine.config import PipelineConfig
 from src.pitch_engine.detectors.base import FieldDetector
+from src.pitch_engine.models import RunSummary
 
 
 class FieldBoundaryAnalyzer:
@@ -21,6 +22,7 @@ class FieldBoundaryAnalyzer:
 
         frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
         frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        frame_area = frame_width * frame_height
         outer_boundary = Polygon(
             [(0, 0), (frame_width, 0), (frame_width, frame_height), (0, frame_height)]
         )
@@ -29,8 +31,11 @@ class FieldBoundaryAnalyzer:
         sample_interval = max(1, round(source_fps / self.config.target_fps))
 
         frame_count = 0
-        detected_polygons = []
         failed_frame_count = 0
+        valid_count = 0
+        invalid_count = 0
+        no_detection_count = 0
+        valid_areas = []
 
         while True:
             ret = cap.grab()
@@ -59,13 +64,32 @@ class FieldBoundaryAnalyzer:
                 )
                 continue
 
-            if poly and poly.is_valid:
-                intersection_area = poly.intersection(outer_boundary).area
-                detected_polygons.append((frame_count, poly, intersection_area))
+            if poly is None:
+                no_detection_count += 1
+                continue
+
+            intersection_area = poly.intersection(outer_boundary).area
+            area_ratio = intersection_area / frame_area
+
+            if not poly.is_valid or area_ratio > 0.95:
+                invalid_count += 1
+            else:
+                valid_count += 1
+                valid_areas.append(intersection_area)
 
         cap.release()
-        self.logger.info(
-            f"Processed {frame_count} frames. Found {len(detected_polygons)} boundaries. "
-            f"{failed_frame_count} frames failed detection."
+
+        average_valid_area = sum(valid_areas) / len(valid_areas) if valid_areas else None
+
+        summary = RunSummary(
+            total_frames=frame_count,
+            sampled_frames=valid_count + invalid_count + no_detection_count,
+            valid_count=valid_count,
+            invalid_count=invalid_count,
+            no_detection_count=no_detection_count,
+            failed_count=failed_frame_count,
+            average_valid_area=average_valid_area,
         )
-        return detected_polygons
+
+        self.logger.info(f"Run summary: {summary}")
+        return summary

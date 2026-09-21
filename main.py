@@ -16,10 +16,11 @@ analyzer = FieldBoundaryAnalyzer(config, detector, logger)
 results = analyzer.process_video(config.video_path)
 
 if results is None:
-    # The video itself couldn't be opened: this is a fatal failure, not a
-    # zero-detection run. Exit non-zero so an orchestrator can tell the
-    # difference instead of reading a clean exit as success.
     logger.error("Pipeline failed: video could not be opened.")
     sys.exit(1)
 
-logger.info(f"Pipeline finished with {len(results)} results.")
+logger.info(
+    f"Pipeline finished: {results.valid_count} valid, "
+    f"{results.invalid_count} invalid, {results.no_detection_count} no-detection, "
+    f"{results.failed_count} failed (of {results.sampled_frames} sampled frames)."
+)
