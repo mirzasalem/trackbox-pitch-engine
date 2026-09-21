@@ -1,0 +1,17 @@
+services:
+  mock_api:
+    build: ./mock_api
+    ports:
+      # Host port 5050 (not 5000) to dodge macOS AirPlay Receiver, which squats on 5000.
+      # Container-to-container traffic (your runner -> mock_api) is unaffected: it always
+      # uses the internal port 5000 via the service name, e.g. http://mock_api:5000.
+      - "5050:5000"
+
+  # Add your own service here once you've built your solution, e.g.:
+  #
+  # runner:
+  #   build: .
+  #   depends_on:
+  #     - mock_api
+  #   environment:
+  #     - MOCK_API_URL=http://mock_api:5000
