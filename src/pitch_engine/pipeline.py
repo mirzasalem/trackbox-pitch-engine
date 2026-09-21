@@ -6,17 +6,18 @@ from src.pitch_engine.detectors.base import FieldDetector
 
 
 class FieldBoundaryAnalyzer:
-    def __init__(self, config: PipelineConfig, detector: FieldDetector):
+    def __init__(self, config: PipelineConfig, detector: FieldDetector, logger):
         self.config = config
         self.detector = detector
+        self.logger = logger
 
     def process_video(self, video_path: str):
-        print(f"Starting processing for video: {video_path}")
+        self.logger.info(f"Starting processing for video: {video_path}")
         cap = cv2.VideoCapture(video_path)
 
         if not cap.isOpened():
-            print("Error: Could not open video stream.")
-            return
+            self.logger.error(f"Could not open video stream: {video_path}")
+            return None
 
         frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
         frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
@@ -51,5 +52,5 @@ class FieldBoundaryAnalyzer:
                 detected_polygons.append((frame_count, poly, intersection_area))
 
         cap.release()
-        print(f"Processed {frame_count} frames. Found {len(detected_polygons)} boundaries.")
+        self.logger.info(f"Processed {frame_count} frames. Found {len(detected_polygons)} boundaries.")
         return detected_polygons
