@@ -7,11 +7,12 @@ services:
       # uses the internal port 5000 via the service name, e.g. http://mock_api:5000.
       - "5050:5000"
 
-  # Add your own service here once you've built your solution, e.g.:
-  #
-  # runner:
-  #   build: .
-  #   depends_on:
-  #     - mock_api
-  #   environment:
-  #     - MOCK_API_URL=http://mock_api:5000
+  runner:
+    build: .
+    depends_on:
+      - mock_api
+    environment:
+      # Container-to-container traffic uses the internal port (5000) via
+      # the service name, regardless of what mock_api is mapped to on
+      # the host above.
+      - MOCK_API_URL=http://mock_api:5000

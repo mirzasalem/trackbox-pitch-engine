@@ -1,5 +1,7 @@
+import os
 import sys
 
+from synthetic_generator import generate_synthetic_video
 from src.pitch_engine.config import PipelineConfig
 from src.pitch_engine.detectors.mask_detector import HsvMaskFieldDetector
 from src.pitch_engine.pipeline import FieldBoundaryAnalyzer
@@ -10,6 +12,13 @@ from src.pitch_engine.models import JobEvent
 config = PipelineConfig.from_json("config.json")
 logger, run_id = configure_logging(debug_mode=config.debug_mode)
 logger.info(f"loaded config: {config}")
+
+if not os.path.exists(config.video_path):
+    # Keeps the container self-contained: it doesn't depend on a video
+    # being mounted in from the host. In a real deployment this branch
+    # wouldn't exist — a real feed would always be supplied externally.
+    logger.info(f"{config.video_path} not found, generating synthetic feed")
+    generate_synthetic_video(config.video_path)
 
 detector = HsvMaskFieldDetector(min_area=config.field_detector.min_area)
 reporting_client = ReportingClient(logger)
