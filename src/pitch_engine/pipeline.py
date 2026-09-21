@@ -30,6 +30,7 @@ class FieldBoundaryAnalyzer:
 
         frame_count = 0
         detected_polygons = []
+        failed_frame_count = 0
 
         while True:
             ret = cap.grab()
@@ -45,12 +46,26 @@ class FieldBoundaryAnalyzer:
             if not ret:
                 break
 
-            poly = self.detector.detect(frame)
+            try:
+                poly = self.detector.detect(frame)
+            except Exception:
+                # A single bad/corrupt frame is a recoverable failure: log it
+                # and keep processing the rest of the feed, don't crash the
+                # whole run over one frame.
+                failed_frame_count += 1
+                self.logger.warning(
+                    f"Detector raised on frame {frame_count}, skipping frame",
+                    exc_info=True,
+                )
+                continue
 
             if poly and poly.is_valid:
                 intersection_area = poly.intersection(outer_boundary).area
                 detected_polygons.append((frame_count, poly, intersection_area))
 
         cap.release()
-        self.logger.info(f"Processed {frame_count} frames. Found {len(detected_polygons)} boundaries.")
+        self.logger.info(
+            f"Processed {frame_count} frames. Found {len(detected_polygons)} boundaries. "
+            f"{failed_frame_count} frames failed detection."
+        )
         return detected_polygons
